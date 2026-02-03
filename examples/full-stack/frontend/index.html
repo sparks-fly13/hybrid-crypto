@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hybrid Crypto Full Stack Example</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        section { border: 1px solid #ccc; padding: 20px; margin-bottom: 20px; border-radius: 8px; }
+        textarea { width: 100%; height: 60px; }
+        button { padding: 10px 20px; cursor: pointer; }
+        pre { background: #f4f4f4; padding: 10px; overflow-x: auto; }
+        .status { margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Hybrid Crypto Full Stack Example</h1>
+
+    <div id="status-main" class="status">Initializing Keys...</div>
+
+    <section>
+        <h2>1. Client -> Server (Secure Submit)</h2>
+        <p>Encrypt a message with the Server's Public Key. Only the server can decrypt it.</p>
+        <textarea id="input-message" placeholder="Type a secret message..."></textarea>
+        <br><br>
+        <button id="btn-send">Encrypt & Send</button>
+        <div id="result-send"></div>
+    </section>
+
+    <section>
+        <h2>2. Server -> Client (Secure Retrieve)</h2>
+        <p>Request a secret message from the server. The server will encrypt it with your Client Public Key.</p>
+        <button id="btn-get">Get Secret Message</button>
+        <div id="result-get"></div>
+    </section>
+
+    <script type="module" src="./client.js"></script>
+</body>
+</html>
