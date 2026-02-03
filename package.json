@@ -1,0 +1,19 @@
+{
+  "name": "hybrid-crypto-js",
+  "version": "1.0.0",
+  "description": "Hybrid encryption package using native crypto modules for Node and Browser",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node test/test.js"
+  },
+  "keywords": [
+    "crypto",
+    "hybrid",
+    "encryption",
+    "rsa",
+    "aes"
+  ],
+  "author": "Pulkit Sinha",
+  "license": "ISC"
+}
