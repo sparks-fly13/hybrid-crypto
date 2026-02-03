@@ -1,0 +1,4 @@
+Generating server keys...
+Server running at http://localhost:3000/
+Server keys generated.
+Decrypted message from client: Hello from Playwright
