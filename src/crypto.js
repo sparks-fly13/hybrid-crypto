@@ -11,9 +11,6 @@ function getCrypto() {
   if (typeof globalThis.crypto !== 'undefined') {
     return globalThis.crypto;
   }
-  // Fallback for environments where crypto is not global (older Node)
-  // This might not work with static imports in pure browser environments without bundlers/polyfills
-  // but for modern Node and Browser, globalThis.crypto is standard.
   throw new Error('Web Crypto API is not available in this environment.');
 }
 
@@ -38,7 +35,7 @@ export async function generateKeyPair() {
   const keyPair = await crypto.subtle.generateKey(
     RSA_ALGO,
     true, // extractable
-    ["encrypt", "decrypt"]
+    ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
   );
 
   const publicKeyBuffer = await crypto.subtle.exportKey("spki", keyPair.publicKey);
@@ -51,110 +48,61 @@ export async function generateKeyPair() {
 }
 
 /**
- * Encrypts data using hybrid encryption.
- * @param {string|object} data - The payload to encrypt.
- * @param {string} publicKeyPEM - The backend's public RSA key (PEM).
- * @returns {Promise<{encryptedData: string, encryptedKey: string, iv: string}>}
+ * Generates a symmetric AES-GCM key.
+ * @returns {Promise<CryptoKey>} The generated AES key.
  */
-export async function encrypt(data, publicKeyPEM) {
+export async function createSymmetricKey() {
   const crypto = getCrypto();
-  
-  // 1. Prepare data
+  return await crypto.subtle.generateKey(
+    AES_ALGO,
+    true,
+    ["encrypt", "decrypt"]
+  );
+}
+
+/**
+ * Encrypts data using a specific symmetric key.
+ * @param {string|object} data - The payload to encrypt.
+ * @param {CryptoKey} key - The AES key to use.
+ * @returns {Promise<{encryptedData: string, iv: string}>}
+ */
+export async function encryptWithSymmetricKey(data, key) {
+  const crypto = getCrypto();
   const payloadStr = typeof data === 'object' ? JSON.stringify(data) : String(data);
   const payloadBuffer = str2ab(payloadStr);
-
-  // 2. Import RSA Public Key
-  const rsaKeyBuffer = pemToArrayBuffer(publicKeyPEM);
-  const rsaPublicKey = await crypto.subtle.importKey(
-    "spki",
-    rsaKeyBuffer,
-    RSA_ALGO,
-    false,
-    ["encrypt"]
-  );
-
-  // 3. Generate AES Symmetric Key
-  const aesKey = await crypto.subtle.generateKey(
-    AES_ALGO,
-    true, // extractable so we can encrypt it
-    ["encrypt"]
-  );
-
-  // 4. Encrypt Payload with AES Key
   const iv = crypto.getRandomValues(new Uint8Array(12));
+
   const encryptedPayload = await crypto.subtle.encrypt(
     {
       name: "AES-GCM",
       iv: iv
     },
-    aesKey,
+    key,
     payloadBuffer
-  );
-
-  // 5. Export AES Key
-  const aesKeyRaw = await crypto.subtle.exportKey("raw", aesKey);
-
-  // 6. Encrypt AES Key with RSA Public Key
-  const encryptedAesKey = await crypto.subtle.encrypt(
-    {
-      name: "RSA-OAEP"
-    },
-    rsaPublicKey,
-    aesKeyRaw
   );
 
   return {
     encryptedData: arrayBufferToBase64(encryptedPayload),
-    encryptedKey: arrayBufferToBase64(encryptedAesKey),
     iv: arrayBufferToBase64(iv)
   };
 }
 
 /**
- * Decrypts data using hybrid encryption.
- * @param {object} encryptedPackage - The encrypted package { encryptedData, encryptedKey, iv }.
- * @param {string} privateKeyPEM - The backend's private RSA key (PEM).
+ * Decrypts data using a specific symmetric key.
+ * @param {object} encryptedPackage - { encryptedData, iv }
+ * @param {CryptoKey} key - The AES key to use.
  * @returns {Promise<string|object>} The decrypted payload.
  */
-export async function decrypt(encryptedPackage, privateKeyPEM) {
+export async function decryptWithSymmetricKey(encryptedPackage, key) {
   const crypto = getCrypto();
-  const { encryptedData, encryptedKey, iv } = encryptedPackage;
+  const { encryptedData, iv } = encryptedPackage;
 
-  // 1. Import RSA Private Key
-  const rsaKeyBuffer = pemToArrayBuffer(privateKeyPEM);
-  const rsaPrivateKey = await crypto.subtle.importKey(
-    "pkcs8",
-    rsaKeyBuffer,
-    RSA_ALGO,
-    false,
-    ["decrypt"]
-  );
-
-  // 2. Decrypt AES Key
-  const aesKeyRaw = await crypto.subtle.decrypt(
-    {
-      name: "RSA-OAEP"
-    },
-    rsaPrivateKey,
-    base64ToArrayBuffer(encryptedKey)
-  );
-
-  // 3. Import AES Key
-  const aesKey = await crypto.subtle.importKey(
-    "raw",
-    aesKeyRaw,
-    AES_ALGO,
-    false,
-    ["decrypt"]
-  );
-
-  // 4. Decrypt Payload
   const decryptedPayloadBuffer = await crypto.subtle.decrypt(
     {
       name: "AES-GCM",
       iv: base64ToArrayBuffer(iv)
     },
-    aesKey,
+    key,
     base64ToArrayBuffer(encryptedData)
   );
 
@@ -165,4 +113,101 @@ export async function decrypt(encryptedPackage, privateKeyPEM) {
   } catch (e) {
     return payloadStr;
   }
+}
+
+/**
+ * Wraps (encrypts) a symmetric key with an RSA public key.
+ * @param {CryptoKey} key - The symmetric key to wrap.
+ * @param {string} publicKeyPEM - The RSA public key (PEM).
+ * @returns {Promise<string>} The wrapped key as Base64 string.
+ */
+export async function wrapKey(key, publicKeyPEM) {
+  const crypto = getCrypto();
+  const rsaKeyBuffer = pemToArrayBuffer(publicKeyPEM);
+  const rsaPublicKey = await crypto.subtle.importKey(
+    "spki",
+    rsaKeyBuffer,
+    RSA_ALGO,
+    false,
+    ["wrapKey", "encrypt"]
+  );
+
+  // Note: RSA-OAEP wrapKey is effectively encrypting the exported key data.
+  // Using wrapKey API:
+  const wrappedKeyBuffer = await crypto.subtle.wrapKey(
+    "raw",
+    key,
+    rsaPublicKey,
+    {
+      name: "RSA-OAEP"
+    }
+  );
+
+  return arrayBufferToBase64(wrappedKeyBuffer);
+}
+
+/**
+ * Unwraps (decrypts) a symmetric key with an RSA private key.
+ * @param {string} wrappedKey - The wrapped key (Base64).
+ * @param {string} privateKeyPEM - The RSA private key (PEM).
+ * @returns {Promise<CryptoKey>} The unwrapped AES key.
+ */
+export async function unwrapKey(wrappedKey, privateKeyPEM) {
+  const crypto = getCrypto();
+  const rsaKeyBuffer = pemToArrayBuffer(privateKeyPEM);
+  const rsaPrivateKey = await crypto.subtle.importKey(
+    "pkcs8",
+    rsaKeyBuffer,
+    RSA_ALGO,
+    false,
+    ["unwrapKey", "decrypt"]
+  );
+
+  const wrappedKeyBuffer = base64ToArrayBuffer(wrappedKey);
+
+  const key = await crypto.subtle.unwrapKey(
+    "raw",
+    wrappedKeyBuffer,
+    rsaPrivateKey,
+    {
+      name: "RSA-OAEP"
+    },
+    AES_ALGO,
+    true,
+    ["encrypt", "decrypt"]
+  );
+
+  return key;
+}
+
+/**
+ * Encrypts data using hybrid encryption (Generates new AES key).
+ * @param {string|object} data - The payload to encrypt.
+ * @param {string} publicKeyPEM - The backend's public RSA key (PEM).
+ * @returns {Promise<{encryptedData: string, encryptedKey: string, iv: string}>}
+ */
+export async function encrypt(data, publicKeyPEM) {
+  const aesKey = await createSymmetricKey();
+  const { encryptedData, iv } = await encryptWithSymmetricKey(data, aesKey);
+  const encryptedKey = await wrapKey(aesKey, publicKeyPEM); // Reusing wrapKey
+
+  return {
+    encryptedData,
+    encryptedKey,
+    iv
+  };
+}
+
+/**
+ * Decrypts data using hybrid encryption.
+ * @param {object} encryptedPackage - The encrypted package { encryptedData, encryptedKey, iv }.
+ * @param {string} privateKeyPEM - The backend's private RSA key (PEM).
+ * @returns {Promise<string|object>} The decrypted payload.
+ */
+export async function decrypt(encryptedPackage, privateKeyPEM) {
+  const { encryptedData, encryptedKey, iv } = encryptedPackage;
+
+  const aesKey = await unwrapKey(encryptedKey, privateKeyPEM); // Reusing unwrapKey
+
+  return await decryptWithSymmetricKey({ encryptedData, iv }, aesKey);
 }
