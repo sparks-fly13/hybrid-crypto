@@ -1,2 +1,11 @@
-export { generateKeyPair, encrypt, decrypt } from './crypto.js';
-export * from './utils.js'; // Optional: Expose utils if needed, or keep them internal. I'll expose them for flexibility.
+export {
+  generateKeyPair,
+  encrypt,
+  decrypt,
+  createSymmetricKey,
+  encryptWithSymmetricKey,
+  decryptWithSymmetricKey,
+  wrapKey,
+  unwrapKey
+} from './crypto.js';
+export * from './utils.js';

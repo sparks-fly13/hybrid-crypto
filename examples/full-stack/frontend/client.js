@@ -1,26 +1,23 @@
-import { generateKeyPair, encrypt, decrypt } from '/src/index.js';
+import {
+    createSymmetricKey,
+    wrapKey,
+    encryptWithSymmetricKey,
+    decryptWithSymmetricKey
+} from '/src/index.js';
 
-let clientPublicKey;
-let clientPrivateKey;
 let serverPublicKey;
 
 const statusMain = document.getElementById('status-main');
 
 async function init() {
     try {
-        // 1. Generate Client Keys
-        const keys = await generateKeyPair();
-        clientPublicKey = keys.publicKey;
-        clientPrivateKey = keys.privateKey;
-        console.log('Client keys generated.');
-
-        // 2. Fetch Server Public Key
+        // 1. Fetch Server Public Key (Client doesn't need its own RSA key pair anymore)
         const res = await fetch('/api/public-key');
         const data = await res.json();
         serverPublicKey = data.publicKey;
         console.log('Server public key fetched.');
 
-        statusMain.textContent = 'Ready. Keys initialized.';
+        statusMain.textContent = 'Ready. Server Public Key initialized.';
         statusMain.style.color = 'green';
     } catch (err) {
         console.error(err);
@@ -39,56 +36,57 @@ document.getElementById('btn-send').addEventListener('click', async () => {
     }
 
     try {
-        resultDiv.innerHTML = 'Encrypting...';
+        resultDiv.innerHTML = 'Generating Session Key & Encrypting...';
 
-        // Encrypt with Server's Public Key
-        const encryptedPackage = await encrypt(input, serverPublicKey);
+        // 1. Generate a fresh AES Session Key
+        const sessionKey = await createSymmetricKey();
 
-        resultDiv.innerHTML += '<br>Sending encrypted package...';
+        // 2. Wrap the session key with Server's Public Key
+        const wrappedKey = await wrapKey(sessionKey, serverPublicKey);
+
+        // 3. Encrypt the payload with the Session Key
+        const encryptedPackage = await encryptWithSymmetricKey(input, sessionKey);
+
+        resultDiv.innerHTML += '<br>Sending wrapped key & encrypted package...';
 
         const res = await fetch('/api/submit', {
             method: 'POST',
-            body: JSON.stringify({ encryptedPackage })
+            body: JSON.stringify({
+                wrappedKey,
+                encryptedPackage
+            })
         });
 
         const data = await res.json();
 
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        const { encryptedResponse } = data;
+
+        resultDiv.innerHTML += '<br>Received encrypted response. Decrypting with Session Key...';
+
+        // 4. Decrypt the response with the SAME Session Key
+        const decryptedResponse = await decryptWithSymmetricKey(encryptedResponse, sessionKey);
+
         resultDiv.innerHTML = `
-            <strong>Status:</strong> ${data.status}<br>
-            <strong>Server Decrypted:</strong> <pre>${data.decrypted}</pre>
+            <strong>Status:</strong> Success<br>
+            <strong>Server Response Decrypted:</strong> <pre>${JSON.stringify(decryptedResponse, null, 2)}</pre>
         `;
     } catch (err) {
         console.error(err);
-        resultDiv.textContent = 'Error sending message.';
+        resultDiv.textContent = 'Error during session: ' + err.message;
     }
 });
 
-document.getElementById('btn-get').addEventListener('click', async () => {
-    const resultDiv = document.getElementById('result-get');
-
-    try {
-        resultDiv.innerHTML = 'Requesting secret...';
-
-        const res = await fetch('/api/secret', {
-            method: 'POST',
-            body: JSON.stringify({ clientPublicKey })
-        });
-
-        const data = await res.json();
-        const { encryptedPackage } = data;
-
-        resultDiv.innerHTML += '<br>Received encrypted package. Decrypting...';
-
-        // Decrypt with Client's Private Key
-        const decrypted = await decrypt(encryptedPackage, clientPrivateKey);
-
-        resultDiv.innerHTML = `
-            <strong>Decrypted Secret:</strong> <pre>${decrypted}</pre>
-        `;
-    } catch (err) {
-        console.error(err);
-        resultDiv.textContent = 'Error getting secret.';
-    }
-});
+// Disable the old "Get Secret" button as it's not part of the new flow
+const btnGet = document.getElementById('btn-get');
+if (btnGet) {
+    btnGet.disabled = true;
+    btnGet.textContent = "Deprecated (See Session Flow above)";
+    const resultGet = document.getElementById('result-get');
+    if (resultGet) resultGet.textContent = "This feature is replaced by the bidirectional session flow above.";
+}
 
 init();

@@ -2,7 +2,12 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { generateKeyPair, decrypt, encrypt } from '../../../src/index.js';
+import {
+    generateKeyPair,
+    unwrapKey,
+    decryptWithSymmetricKey,
+    encryptWithSymmetricKey
+} from '../../../src/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -53,36 +58,33 @@ const server = http.createServer(async (req, res) => {
         req.on('data', chunk => body += chunk);
         req.on('end', async () => {
             try {
-                const { encryptedPackage } = JSON.parse(body);
-                const decrypted = await decrypt(encryptedPackage, privateKey);
+                const { wrappedKey, encryptedPackage } = JSON.parse(body);
+
+                // 1. Unwrap the symmetric key
+                const sessionKey = await unwrapKey(wrappedKey, privateKey);
+
+                // 2. Decrypt the payload using the session key
+                const decrypted = await decryptWithSymmetricKey(encryptedPackage, sessionKey);
                 console.log('Decrypted message from client:', decrypted);
 
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ status: 'success', message: 'Message received and decrypted', decrypted }));
-            } catch (err) {
-                console.error('Decryption failed:', err);
-                res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: 'Decryption failed' }));
-            }
-        });
-        return;
-    }
+                // 3. Prepare a response
+                const responsePayload = {
+                    status: 'success',
+                    receivedMessage: decrypted,
+                    serverTimestamp: Date.now(),
+                    secret: "This is a secret response encrypted with your session key!"
+                };
 
-    if (url.pathname === '/api/secret' && req.method === 'POST') {
-        let body = '';
-        req.on('data', chunk => body += chunk);
-        req.on('end', async () => {
-            try {
-                const { clientPublicKey } = JSON.parse(body);
-                const secretMessage = "This is a top secret message from the server! Timestamp: " + Date.now();
-                const encryptedPackage = await encrypt(secretMessage, clientPublicKey);
+                // 4. Encrypt the response with the SAME session key
+                const responsePackage = await encryptWithSymmetricKey(responsePayload, sessionKey);
 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ encryptedPackage }));
+                res.end(JSON.stringify({ encryptedResponse: responsePackage }));
+
             } catch (err) {
-                console.error('Encryption failed:', err);
+                console.error('Processing failed:', err);
                 res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: 'Encryption failed' }));
+                res.end(JSON.stringify({ error: 'Processing failed' }));
             }
         });
         return;
