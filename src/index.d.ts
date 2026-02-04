@@ -43,7 +43,7 @@ export function arrayBufferToPem(buf: ArrayBuffer, type: string): string;
 
 /**
  * Generates an RSA-OAEP key pair.
- * @returns PEM formatted keys.
+ * @returns Base64 formatted keys (Raw).
  */
 export function generateKeyPair(): Promise<{
     publicKey: string;
@@ -80,25 +80,25 @@ export function decryptWithSymmetricKey<T = any>(encryptedPackage: {
 /**
  * Wraps (encrypts) a symmetric key with an RSA public key.
  * @param key - The symmetric key to wrap.
- * @param publicKeyPEM - The RSA public key (PEM).
+ * @param publicKey - The RSA public key (Base64).
  * @returns The wrapped key as Base64 string.
  */
-export function wrapKey(key: CryptoKey, publicKeyPEM: string): Promise<string>;
+export function wrapKey(key: CryptoKey, publicKey: string): Promise<string>;
 
 /**
  * Unwraps (decrypts) a symmetric key with an RSA private key.
  * @param wrappedKey - The wrapped key (Base64).
- * @param privateKeyPEM - The RSA private key (PEM).
+ * @param privateKey - The RSA private key (Base64).
  * @returns The unwrapped AES key.
  */
-export function unwrapKey(wrappedKey: string, privateKeyPEM: string): Promise<CryptoKey>;
+export function unwrapKey(wrappedKey: string, privateKey: string): Promise<CryptoKey>;
 
 /**
  * Encrypts data using hybrid encryption (Generates new AES key).
  * @param data - The payload to encrypt.
- * @param publicKeyPEM - The backend's public RSA key (PEM).
+ * @param publicKey - The backend's public RSA key (Base64).
  */
-export function encrypt(data: string | object, publicKeyPEM: string): Promise<{
+export function encrypt(data: string | object, publicKey: string): Promise<{
     encryptedData: string;
     encryptedKey: string;
     iv: string;
@@ -107,11 +107,11 @@ export function encrypt(data: string | object, publicKeyPEM: string): Promise<{
 /**
  * Decrypts data using hybrid encryption.
  * @param encryptedPackage - The encrypted package { encryptedData, encryptedKey, iv }.
- * @param privateKeyPEM - The backend's private RSA key (PEM).
+ * @param privateKey - The backend's private RSA key (Base64).
  * @returns The decrypted payload.
  */
 export function decrypt<T = any>(encryptedPackage: {
     encryptedData: string;
     encryptedKey: string;
     iv: string;
-}, privateKeyPEM: string): Promise<T>;
+}, privateKey: string): Promise<T>;

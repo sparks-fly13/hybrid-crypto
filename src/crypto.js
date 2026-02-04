@@ -1,8 +1,6 @@
 import {
   str2ab,
   ab2str,
-  pemToArrayBuffer,
-  arrayBufferToPem,
   arrayBufferToBase64,
   base64ToArrayBuffer
 } from './utils.js';
@@ -28,7 +26,7 @@ const AES_ALGO = {
 
 /**
  * Generates an RSA-OAEP key pair.
- * @returns {Promise<{publicKey: string, privateKey: string}>} PEM formatted keys.
+ * @returns {Promise<{publicKey: string, privateKey: string}>} Base64 formatted keys (Raw).
  */
 export async function generateKeyPair() {
   const crypto = getCrypto();
@@ -42,8 +40,8 @@ export async function generateKeyPair() {
   const privateKeyBuffer = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
 
   return {
-    publicKey: arrayBufferToPem(publicKeyBuffer, "PUBLIC KEY"),
-    privateKey: arrayBufferToPem(privateKeyBuffer, "PRIVATE KEY")
+    publicKey: arrayBufferToBase64(publicKeyBuffer),
+    privateKey: arrayBufferToBase64(privateKeyBuffer)
   };
 }
 
@@ -118,12 +116,12 @@ export async function decryptWithSymmetricKey(encryptedPackage, key) {
 /**
  * Wraps (encrypts) a symmetric key with an RSA public key.
  * @param {CryptoKey} key - The symmetric key to wrap.
- * @param {string} publicKeyPEM - The RSA public key (PEM).
+ * @param {string} publicKey - The RSA public key (Base64).
  * @returns {Promise<string>} The wrapped key as Base64 string.
  */
-export async function wrapKey(key, publicKeyPEM) {
+export async function wrapKey(key, publicKey) {
   const crypto = getCrypto();
-  const rsaKeyBuffer = pemToArrayBuffer(publicKeyPEM);
+  const rsaKeyBuffer = base64ToArrayBuffer(publicKey);
   const rsaPublicKey = await crypto.subtle.importKey(
     "spki",
     rsaKeyBuffer,
@@ -149,12 +147,12 @@ export async function wrapKey(key, publicKeyPEM) {
 /**
  * Unwraps (decrypts) a symmetric key with an RSA private key.
  * @param {string} wrappedKey - The wrapped key (Base64).
- * @param {string} privateKeyPEM - The RSA private key (PEM).
+ * @param {string} privateKey - The RSA private key (Base64).
  * @returns {Promise<CryptoKey>} The unwrapped AES key.
  */
-export async function unwrapKey(wrappedKey, privateKeyPEM) {
+export async function unwrapKey(wrappedKey, privateKey) {
   const crypto = getCrypto();
-  const rsaKeyBuffer = pemToArrayBuffer(privateKeyPEM);
+  const rsaKeyBuffer = base64ToArrayBuffer(privateKey);
   const rsaPrivateKey = await crypto.subtle.importKey(
     "pkcs8",
     rsaKeyBuffer,
@@ -183,13 +181,13 @@ export async function unwrapKey(wrappedKey, privateKeyPEM) {
 /**
  * Encrypts data using hybrid encryption (Generates new AES key).
  * @param {string|object} data - The payload to encrypt.
- * @param {string} publicKeyPEM - The backend's public RSA key (PEM).
+ * @param {string} publicKey - The backend's public RSA key (Base64).
  * @returns {Promise<{encryptedData: string, encryptedKey: string, iv: string}>}
  */
-export async function encrypt(data, publicKeyPEM) {
+export async function encrypt(data, publicKey) {
   const aesKey = await createSymmetricKey();
   const { encryptedData, iv } = await encryptWithSymmetricKey(data, aesKey);
-  const encryptedKey = await wrapKey(aesKey, publicKeyPEM); // Reusing wrapKey
+  const encryptedKey = await wrapKey(aesKey, publicKey); // Reusing wrapKey
 
   return {
     encryptedData,
@@ -201,13 +199,13 @@ export async function encrypt(data, publicKeyPEM) {
 /**
  * Decrypts data using hybrid encryption.
  * @param {object} encryptedPackage - The encrypted package { encryptedData, encryptedKey, iv }.
- * @param {string} privateKeyPEM - The backend's private RSA key (PEM).
+ * @param {string} privateKey - The backend's private RSA key (Base64).
  * @returns {Promise<string|object>} The decrypted payload.
  */
-export async function decrypt(encryptedPackage, privateKeyPEM) {
+export async function decrypt(encryptedPackage, privateKey) {
   const { encryptedData, encryptedKey, iv } = encryptedPackage;
 
-  const aesKey = await unwrapKey(encryptedKey, privateKeyPEM); // Reusing unwrapKey
+  const aesKey = await unwrapKey(encryptedKey, privateKey); // Reusing unwrapKey
 
   return await decryptWithSymmetricKey({ encryptedData, iv }, aesKey);
 }
