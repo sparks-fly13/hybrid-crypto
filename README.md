@@ -1,4 +1,4 @@
-# Hybrid Crypto Full Stack Example
+# Hybrid Crypto dummy set-up
 
 This example demonstrates how to use the `hybrid-crypto-js` library in a full-stack Node.js application.
 
