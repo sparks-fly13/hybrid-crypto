@@ -90,24 +90,6 @@ import { decryptWithSymmetricKey } from '@pulkitsinha007/hybrid-crypto-js';
 const data = await decryptWithSymmetricKey({ encryptedData, iv }, sessionKey);
 ```
 
-### `encrypt(data, publicKey)` (Helper)
-Generates a new key, encrypts data, and wraps the key in one step.
-- **Returns**: `Promise<{encryptedData, encryptedKey, iv}>`
-
-```javascript
-import { encrypt } from '@pulkitsinha007/hybrid-crypto-js';
-const pkg = await encrypt("Secret", publicKey);
-```
-
-### `decrypt(encryptedPackage, privateKey)` (Helper)
-Unwraps the key and decrypts the data in one step.
-- **Returns**: `Promise<string | object>`
-
-```javascript
-import { decrypt } from '@pulkitsinha007/hybrid-crypto-js';
-const msg = await decrypt(pkg, privateKey);
-```
-
 ---
 
 ## Backend Setup (Dummy Application)

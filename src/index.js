@@ -1,7 +1,5 @@
 export {
   generateKeyPair,
-  encrypt,
-  decrypt,
   createSymmetricKey,
   encryptWithSymmetricKey,
   decryptWithSymmetricKey,

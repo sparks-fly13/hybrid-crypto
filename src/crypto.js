@@ -177,35 +177,3 @@ export async function unwrapKey(wrappedKey, privateKey) {
 
   return key;
 }
-
-/**
- * Encrypts data using hybrid encryption (Generates new AES key).
- * @param {string|object} data - The payload to encrypt.
- * @param {string} publicKey - The backend's public RSA key (Base64).
- * @returns {Promise<{encryptedData: string, encryptedKey: string, iv: string}>}
- */
-export async function encrypt(data, publicKey) {
-  const aesKey = await createSymmetricKey();
-  const { encryptedData, iv } = await encryptWithSymmetricKey(data, aesKey);
-  const encryptedKey = await wrapKey(aesKey, publicKey); // Reusing wrapKey
-
-  return {
-    encryptedData,
-    encryptedKey,
-    iv
-  };
-}
-
-/**
- * Decrypts data using hybrid encryption.
- * @param {object} encryptedPackage - The encrypted package { encryptedData, encryptedKey, iv }.
- * @param {string} privateKey - The backend's private RSA key (Base64).
- * @returns {Promise<string|object>} The decrypted payload.
- */
-export async function decrypt(encryptedPackage, privateKey) {
-  const { encryptedData, encryptedKey, iv } = encryptedPackage;
-
-  const aesKey = await unwrapKey(encryptedKey, privateKey); // Reusing unwrapKey
-
-  return await decryptWithSymmetricKey({ encryptedData, iv }, aesKey);
-}

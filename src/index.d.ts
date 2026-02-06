@@ -92,26 +92,3 @@ export function wrapKey(key: CryptoKey, publicKey: string): Promise<string>;
  * @returns The unwrapped AES key.
  */
 export function unwrapKey(wrappedKey: string, privateKey: string): Promise<CryptoKey>;
-
-/**
- * Encrypts data using hybrid encryption (Generates new AES key).
- * @param data - The payload to encrypt.
- * @param publicKey - The backend's public RSA key (Base64).
- */
-export function encrypt(data: string | object, publicKey: string): Promise<{
-    encryptedData: string;
-    encryptedKey: string;
-    iv: string;
-}>;
-
-/**
- * Decrypts data using hybrid encryption.
- * @param encryptedPackage - The encrypted package { encryptedData, encryptedKey, iv }.
- * @param privateKey - The backend's private RSA key (Base64).
- * @returns The decrypted payload.
- */
-export function decrypt<T = any>(encryptedPackage: {
-    encryptedData: string;
-    encryptedKey: string;
-    iv: string;
-}, privateKey: string): Promise<T>;
