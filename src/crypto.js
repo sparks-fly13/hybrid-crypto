@@ -177,3 +177,70 @@ export async function unwrapKey(wrappedKey, privateKey) {
 
   return key;
 }
+
+/**
+ * Encrypts data directly using an RSA public key (Asymmetric).
+ * @param {string|object} data - The payload to encrypt.
+ * @param {string} publicKey - The RSA public key (Base64).
+ * @returns {Promise<string>} The encrypted data as Base64 string.
+ */
+export async function encryptAsymmetric(data, publicKey) {
+  const crypto = getCrypto();
+  const rsaKeyBuffer = base64ToArrayBuffer(publicKey);
+  const rsaPublicKey = await crypto.subtle.importKey(
+    "spki",
+    rsaKeyBuffer,
+    RSA_ALGO,
+    false,
+    ["encrypt"]
+  );
+
+  const payloadStr = typeof data === 'object' ? JSON.stringify(data) : String(data);
+  const payloadBuffer = str2ab(payloadStr);
+
+  const encryptedBuffer = await crypto.subtle.encrypt(
+    {
+      name: "RSA-OAEP"
+    },
+    rsaPublicKey,
+    payloadBuffer
+  );
+
+  return arrayBufferToBase64(encryptedBuffer);
+}
+
+/**
+ * Decrypts data directly using an RSA private key (Asymmetric).
+ * @param {string} encryptedData - The encrypted data (Base64).
+ * @param {string} privateKey - The RSA private key (Base64).
+ * @returns {Promise<string|object>} The decrypted payload.
+ */
+export async function decryptAsymmetric(encryptedData, privateKey) {
+  const crypto = getCrypto();
+  const rsaKeyBuffer = base64ToArrayBuffer(privateKey);
+  const rsaPrivateKey = await crypto.subtle.importKey(
+    "pkcs8",
+    rsaKeyBuffer,
+    RSA_ALGO,
+    false,
+    ["decrypt"]
+  );
+
+  const encryptedBuffer = base64ToArrayBuffer(encryptedData);
+
+  const decryptedBuffer = await crypto.subtle.decrypt(
+    {
+      name: "RSA-OAEP"
+    },
+    rsaPrivateKey,
+    encryptedBuffer
+  );
+
+  const payloadStr = ab2str(decryptedBuffer);
+
+  try {
+    return JSON.parse(payloadStr);
+  } catch (e) {
+    return payloadStr;
+  }
+}
