@@ -92,3 +92,19 @@ export function wrapKey(key: CryptoKey, publicKey: string): Promise<string>;
  * @returns The unwrapped AES key.
  */
 export function unwrapKey(wrappedKey: string, privateKey: string): Promise<CryptoKey>;
+
+/**
+ * Encrypts data directly using an RSA public key (Asymmetric).
+ * @param data - The payload to encrypt.
+ * @param publicKey - The RSA public key (Base64).
+ * @returns The encrypted data as Base64 string.
+ */
+export function encryptAsymmetric(data: string | object, publicKey: string): Promise<string>;
+
+/**
+ * Decrypts data directly using an RSA private key (Asymmetric).
+ * @param encryptedData - The encrypted data (Base64).
+ * @param privateKey - The RSA private key (Base64).
+ * @returns The decrypted payload.
+ */
+export function decryptAsymmetric<T = any>(encryptedData: string, privateKey: string): Promise<T>;

@@ -4,6 +4,8 @@ export {
   encryptWithSymmetricKey,
   decryptWithSymmetricKey,
   wrapKey,
-  unwrapKey
+  unwrapKey,
+  encryptAsymmetric,
+  decryptAsymmetric
 } from './crypto.js';
 export * from './utils.js';

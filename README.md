@@ -90,6 +90,32 @@ import { decryptWithSymmetricKey } from '@pulkitsinha007/hybrid-crypto-js';
 const data = await decryptWithSymmetricKey({ encryptedData, iv }, sessionKey);
 ```
 
+### `encryptAsymmetric(data, publicKey)`
+Encrypts data directly using an RSA public key.
+- **Parameters**:
+  - `data`: `string | object` - The payload to encrypt.
+  - `publicKey`: `string` - The RSA public key (Base64).
+- **Returns**: `Promise<string>` (Base64 encoded)
+
+```javascript
+import { encryptAsymmetric } from '@pulkitsinha007/hybrid-crypto-js';
+
+const encryptedData = await encryptAsymmetric({ secret: "data" }, publicKey);
+```
+
+### `decryptAsymmetric(encryptedData, privateKey)`
+Decrypts data directly using an RSA private key.
+- **Parameters**:
+  - `encryptedData`: `string` - The encrypted data (Base64).
+  - `privateKey`: `string` - The RSA private key (Base64).
+- **Returns**: `Promise<string | object>`
+
+```javascript
+import { decryptAsymmetric } from '@pulkitsinha007/hybrid-crypto-js';
+
+const data = await decryptAsymmetric(encryptedData, privateKey);
+```
+
 ---
 
 ## Backend Setup (Dummy Application)
