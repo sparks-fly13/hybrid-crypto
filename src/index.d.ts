@@ -108,3 +108,12 @@ export function encryptAsymmetric(data: string | object, publicKey: string): Pro
  * @returns The decrypted payload.
  */
 export function decryptAsymmetric<T = any>(encryptedData: string, privateKey: string): Promise<T>;
+
+/**
+ * Provides a Crypto Key by taking custom a base string key as the input
+ * @param {string} inputKey - Base key string supposed to be used for encoding
+ * @param {Object} [options] - Optional configuration.
+ * @param {boolean} [options.extractable=false] - Whether the key can be exported.
+ * @returns {Promise<CryptoKey>} The extractable AES encrypted Crypto Key
+ */
+export async function getCustomSymmetricKey(inputKey: string, options?: {extractable?: boolean}): Promise<CryptoKey>;

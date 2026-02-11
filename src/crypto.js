@@ -244,3 +244,23 @@ export async function decryptAsymmetric(encryptedData, privateKey) {
     return payloadStr;
   }
 }
+
+/**
+ * Provides a Crypto Key by taking custom a base string key as the input
+ * @param {string} inputKey - Base key string supposed to be used for encoding
+ * @param {Object} [options] - Optional configuration.
+ * @param {boolean} [options.extractable=false] - Whether the key can be exported.
+ * @returns {Promise<CryptoKey>} The extractable AES encrypted Crypto Key
+ */
+export async function getCustomSymmetricKey(inputKey, options) {
+  const {extractable = false} = options || {};
+  const keyData = new TextEncoder().encode(inputKey.padEnd(32, '0').substring(0, 32));
+  let symmetricKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'AES-GCM' },
+    extractable,
+    ['encrypt', 'decrypt']
+  );
+  return symmetricKey;
+};
