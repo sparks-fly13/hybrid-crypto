@@ -121,13 +121,13 @@ Provides a Crypto Key by taking custom a base string key as the input.
 - **Parameter**:
   - `inputKey`: `string` - Base key string supposed to be used for encoding.
   - `options`: `Object` - Optional Configuration.
-  - `options.extractable`: `Boolean`: `Default: false` - Whether the key can be exported.
+  - `options.extractable`: `Boolean` - `Default: false` - Whether the key can be exported.
 - **Returns**: `Promise<CryptoKey>`
 
 ```javascript
 import { getCustomSymmetricKey } from '@pulkitsinha007/hybrid-crypto-js';
 
-const data = await getCustomSymmetricKey(inputKey);
+const data = await getCustomSymmetricKey(inputKey, { extractable: true });
 ```
 
 ---
