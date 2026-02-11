@@ -6,6 +6,7 @@ export {
   wrapKey,
   unwrapKey,
   encryptAsymmetric,
-  decryptAsymmetric
+  decryptAsymmetric,
+  getCustomSymmetricKey
 } from './crypto.js';
 export * from './utils.js';
