@@ -246,7 +246,7 @@ export async function decryptAsymmetric(encryptedData, privateKey) {
 }
 
 /**
- * Provides a Crypto Key by taking custom a base string key as the input
+ * Provides a Crypto Key by taking a custom base string as the input
  * @param {string} inputKey - Base key string supposed to be used for encoding
  * @param {Object} [options] - Optional configuration.
  * @param {boolean} [options.extractable=false] - Whether the key can be exported.
