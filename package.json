@@ -1,6 +1,6 @@
 {
   "name": "@pulkitsinha007/hybrid-crypto-js",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Hybrid encryption package using native crypto modules for Node and Browser",
   "type": "module",
   "main": "src/index.js",
