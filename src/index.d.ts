@@ -116,4 +116,4 @@ export function decryptAsymmetric<T = any>(encryptedData: string, privateKey: st
  * @param {boolean} [options.extractable=false] - Whether the key can be exported.
  * @returns {Promise<CryptoKey>} The extractable AES encrypted Crypto Key
  */
-export async function getCustomSymmetricKey(inputKey: string, options?: {extractable?: boolean}): Promise<CryptoKey>;
+export function getCustomSymmetricKey(inputKey: string, options?: {extractable?: boolean}): Promise<CryptoKey>;

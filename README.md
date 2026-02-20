@@ -117,7 +117,7 @@ const data = await decryptAsymmetric(encryptedData, privateKey);
 ```
 
 ### `getCustomSymmetricKey(inputKey)`
-Provides a Crypto Key by taking custom a base string key as the input.
+Provides a Crypto Key by taking a custom base string as the input.
 - **Parameter**:
   - `inputKey`: `string` - Base key string supposed to be used for encoding.
   - `options`: `Object` - Optional Configuration.
